@@ -6,7 +6,7 @@ A production-ready RESTful API for user management built with FastAPI, SQLAlchem
  
 - Full CRUD operations for user management
 - Soft delete (logical deletion) instead of permanent removal
-- Password hashing with bcrypt via Passlib
+- Password hashing with bcrypt (72-byte limit enforced at the schema layer)
 - Input validation with Pydantic schemas
 - PostgreSQL with connection pooling and health checks
 - Docker Compose setup (API + Database)
@@ -22,7 +22,7 @@ A production-ready RESTful API for user management built with FastAPI, SQLAlchem
 | ORM | SQLAlchemy |
 | Validation | Pydantic |
 | Database | PostgreSQL 15 |
-| Security | Passlib + bcrypt |
+| Security | bcrypt |
 | Container | Docker + Docker Compose |
 | Server | Uvicorn |
  
@@ -43,13 +43,14 @@ fastapi-users-api/
 │   ├── utils/
 │   │   └── security.py        # Password hashing and verification
 │   └── tests/
-│       └── test_user.py       # pytest test suite
-├── migrations/                # Alembic (database migrations)
+│       ├── conftest.py        # Fixtures: test database, client, sample data
+│       └── test_user.py       # pytest test suite (41 tests)
 ├── Dockerfile
 ├── docker-compose.yml
 ├── .env
 ├── .dockerignore
 ├── .gitignore
+├── pytest.ini
 ├── requirements.txt
 └── README.md
 ```
@@ -67,11 +68,11 @@ fastapi-users-api/
 git clone https://github.com/SUPERharolxomg/fastapi-users-api.git
 cd fastapi-users-api
  
-# Create your environment file
-cp .env.example .env
- 
+# Create your environment file (see "Environment Variables" below)
+touch .env
+
 # Start the containers
-docker-compose up --build
+docker compose up --build
 ```
  
 The API will be available at `http://localhost:8000`
@@ -173,12 +174,16 @@ Tests are organized in three categories:
 ### Running Tests
  
 ```bash
-# Inside the container
-docker-compose exec api pytest tests/ -v --cov=app
- 
-# Locally
-pytest tests/ -v --cov=app
+# Inside the container (recommended: PostgreSQL is not exposed to the host)
+docker compose exec api pytest
+
+# With a coverage report
+docker compose exec api pytest --cov=app --cov-report=term-missing
 ```
+
+Tests run against a dedicated `users_db_test` database, created automatically on
+the same PostgreSQL instance. The development database is never touched. Each
+test starts from an empty table, so tests can run in any order.
  
 ## Roadmap
  
